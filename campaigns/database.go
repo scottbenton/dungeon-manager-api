@@ -46,7 +46,26 @@ func getUsersCampaignsDB(userId string) ([]campaignDTO, error) {
 	log.Println(campaigns);
 
 	return campaigns, nil;
+}
 
+func getCampaignDB(userId string, campaignId string) (campaignDTO, error) {
+	campaignsCollection := getCampaignCollection();
+
+	id := utils.ConvertStringToObjectId(campaignId);
+	// Filter by campaigns where the user is an owner
+	filter := bson.D{{Key: "owners", Value: userId}, {Key: "_id", Value: id}};
+
+	// Get campaigns
+	result := campaignsCollection.FindOne(context.TODO(), filter, options.FindOne())
+
+	// Extract campaigns from results
+	var campaign campaignDAO;
+	err := result.Decode(&campaign);
+	if(err != nil) {
+		log.Println("Failed to decode campaign", err);
+		return campaignDTO{}, errors.New("Failed to decode campaign");
+	}
+	return campaign.toDTO(), nil;
 }
 
 type createCampaignInput struct {

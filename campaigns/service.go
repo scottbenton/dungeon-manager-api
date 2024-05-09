@@ -22,3 +22,7 @@ func createCampaign(userId string, campaignName string) (campaignDTO, error) {
 func getUsersCampaigns(userId string) ([]campaignDTO, error) {
 	return getUsersCampaignsDB(userId);
 }
+
+func getCampaign(userId string, campaignId string) (campaignDTO, error) {
+	return getCampaignDB(userId, campaignId);
+}

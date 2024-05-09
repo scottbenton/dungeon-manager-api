@@ -21,6 +21,7 @@ func GetCampaignRouter() *chi.Mux {
 
 	campaignRouter.Post("/", createCampaignAPI)
 	campaignRouter.Get("/", getUsersCampaignsAPI)
+	campaignRouter.Get("/{campaignId}", getCampaignAPI)
 
 	return campaignRouter
 }
@@ -65,6 +66,25 @@ func getUsersCampaignsAPI(w http.ResponseWriter, r *http.Request) {
 
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, campaigns)
+}
+
+func getCampaignAPI(w http.ResponseWriter, r *http.Request) {
+	// Get the uid from the request context
+	uid := utils.GetUidFromContext(r.Context())
+		campaignId := chi.URLParam(r, "campaignId")
+
+	log.Println("User ID: ", uid)
+	log.Println("Campaign ID: ", campaignId)
+
+	campaign, err := getCampaign(uid, campaignId)
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		log.Println("Failed to get campaign", err)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, campaign)
 }
 
 type ErrResponse struct {
