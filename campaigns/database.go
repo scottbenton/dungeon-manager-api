@@ -92,3 +92,46 @@ func createCampaignDB(campaignInput createCampaignInput) (string, error) {
 
 	return utils.ConvertObjectIdToString(result.InsertedID), nil;
 }
+
+func updateCampaignDB(campaignId string, updateInput updateCampaignDTO) error {
+	campaignsCollection := getCampaignCollection();
+
+	id := utils.ConvertStringToObjectId(campaignId);
+	filter := bson.D{{Key: "_id", Value: id}};
+
+	update := bson.D{};
+
+	if(updateInput.Name != nil) {
+		update = append(update, bson.E{Key: "$set", Value: bson.D{{Key: "name", Value: *updateInput.Name}}});
+	}
+
+	if(updateInput.Owners != nil) {
+		update = append(update, bson.E{Key: "$set", Value: bson.D{{Key: "owners", Value: *updateInput.Owners}}});
+	}
+
+	log.Println("Updating campaign", update);
+
+	_, err := campaignsCollection.UpdateOne(context.TODO(), filter, update);
+
+	if(err != nil) {
+		log.Println("Failed to update campaign", err);
+		return errors.New("Failed to update campaign");
+	}
+
+	return nil;
+}
+
+func deleteCampaignDB(campaignId string) error {
+	campaignsCollection := getCampaignCollection();
+
+	id := utils.ConvertStringToObjectId(campaignId);
+	filter := bson.D{{Key: "_id", Value: id}};
+	_, err := campaignsCollection.DeleteOne(context.TODO(), filter);
+
+	if(err != nil) {
+		log.Println("Failed to remove campaign", err);
+		return errors.New("Failed to remove campaign");
+	}
+
+	return nil;
+}

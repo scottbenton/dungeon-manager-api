@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/MicahParks/keyfunc/v3"
+	"github.com/go-chi/render"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -19,7 +20,7 @@ func VerifySession(next http.Handler) http.Handler {
         // Retrieve the JWT token from the request header
         token := strings.Replace( r.Header.Get("Authorization"), "Bearer ", "", 1)
         if token == "" {
-            http.Error(w, "No token provided", http.StatusUnauthorized)
+            render.Render(w, r, GetHttpErrorFromError(ErrNoToken, "resource"))
             return
         }
         
@@ -27,7 +28,7 @@ func VerifySession(next http.Handler) http.Handler {
         k, keyFuncErr := keyfunc.NewDefaultCtx(r.Context(), []string{jwksURL})
         if keyFuncErr != nil {
             log.Println("Failed to create keyfunc: ", keyFuncErr)
-            http.Error(w, "Failed to create keyfunc", http.StatusInternalServerError)
+            render.Render(w, r, GetHttpErrorFromError(ErrBadToken, "resource"))
             return
         }
 
@@ -37,13 +38,14 @@ func VerifySession(next http.Handler) http.Handler {
 
         if err != nil {
             log.Println("Failed to parse token: ", err)
-            http.Error(w, "Invalid token", http.StatusUnauthorized)
+            
+            render.Render(w, r, GetHttpErrorFromError(ErrBadToken, "resource"))
             return
         }
 
         uid:= parsed.Claims.(jwt.MapClaims)["sub"]
         if(uid == nil) {
-            http.Error(w, "Invalid token", http.StatusUnauthorized)
+            render.Render(w, r, GetHttpErrorFromError(ErrBadToken, "resource"))
             return
         }
         log.Println(uid)

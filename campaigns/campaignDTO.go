@@ -9,3 +9,9 @@ type campaignDTO struct {
 type createCampaignDTO struct {
 	Name string `json:"name"`
 }
+
+// All fields are optional since we merge it with the existing object
+type updateCampaignDTO struct {
+	Name *string `json:"name"`
+	Owners *[]string `json:"owners"`
+}

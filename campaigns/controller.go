@@ -22,6 +22,8 @@ func GetCampaignRouter() *chi.Mux {
 	campaignRouter.Post("/", createCampaignAPI)
 	campaignRouter.Get("/", getUsersCampaignsAPI)
 	campaignRouter.Get("/{campaignId}", getCampaignAPI)
+	campaignRouter.Put("/{campaignId}", updateCampaignAPI)
+	campaignRouter.Delete("/{campaignId}", deleteCampaignAPI)
 
 	return campaignRouter
 }
@@ -31,19 +33,18 @@ func createCampaignAPI(w http.ResponseWriter, r *http.Request) {
 	uid := utils.GetUidFromContext(r.Context())
 	log.Println("User ID: ", uid)
 
-	var createCampaignInput = new(createCampaignDTO);
+	var createCampaignInput = new(createCampaignDTO)
 	if err := render.DecodeJSON(r.Body, createCampaignInput); err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
+		render.Render(w, r, utils.GetHttpErrorFromError(err, "campaign"))
 		log.Println("Failed to decode create campaign request", err)
 		return
 	}
 
 	log.Println("Creating campaign: ", createCampaignInput.Name)
 
-
 	campaign, err := createCampaign(uid, createCampaignInput.Name)
 	if err != nil {
-		render.Render(w, r, ErrInternalServer(err))
+		render.Render(w, r, utils.GetHttpErrorFromError(err, "campaign"))
 		log.Println("Failed to create campaign", err)
 		return
 	}
@@ -59,7 +60,7 @@ func getUsersCampaignsAPI(w http.ResponseWriter, r *http.Request) {
 
 	campaigns, err := getUsersCampaigns(uid)
 	if err != nil {
-		render.Render(w, r, ErrInternalServer(err))
+		render.Render(w, r, utils.GetHttpErrorFromError(err, "campaigns"))
 		log.Println("Failed to get campaigns", err)
 		return
 	}
@@ -71,14 +72,14 @@ func getUsersCampaignsAPI(w http.ResponseWriter, r *http.Request) {
 func getCampaignAPI(w http.ResponseWriter, r *http.Request) {
 	// Get the uid from the request context
 	uid := utils.GetUidFromContext(r.Context())
-		campaignId := chi.URLParam(r, "campaignId")
+	campaignId := chi.URLParam(r, "campaignId")
 
 	log.Println("User ID: ", uid)
 	log.Println("Campaign ID: ", campaignId)
 
 	campaign, err := getCampaign(uid, campaignId)
 	if err != nil {
-		render.Render(w, r, ErrInternalServer(err))
+		render.Render(w, r, utils.GetHttpErrorFromError(err, "campaign"))
 		log.Println("Failed to get campaign", err)
 		return
 	}
@@ -87,34 +88,47 @@ func getCampaignAPI(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, campaign)
 }
 
-type ErrResponse struct {
-	Err            error `json:"-"` // low-level runtime error
-	HTTPStatusCode int   `json:"-"` // http response status code
+func updateCampaignAPI(w http.ResponseWriter, r *http.Request) {
+	// Get the uid from the request context
+	uid := utils.GetUidFromContext(r.Context())
+	campaignId := chi.URLParam(r, "campaignId")
 
-	StatusText string `json:"status"`          // user-level status message
-	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
-	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
-}
+	log.Println("User ID: ", uid)
+	log.Println("Campaign ID: ", campaignId)
 
-func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.HTTPStatusCode)
-	return nil
-}
-
-func ErrInvalidRequest(err error) render.Renderer {
-	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 400,
-		StatusText:     "Invalid request.",
-		ErrorText:      err.Error(),
+	var updateCampaignInput = new(updateCampaignDTO)
+	if err := render.DecodeJSON(r.Body, updateCampaignInput); err != nil {
+		render.Render(w, r, utils.GetHttpErrorFromError(err, "campaign"))
+		log.Println("Failed to decode update campaign request", err)
+		return
 	}
+
+	log.Println("Updating campaign: ", updateCampaignInput)
+
+	err := updateCampaign(uid, campaignId, *updateCampaignInput)
+	if err != nil {
+		render.Render(w, r, utils.GetHttpErrorFromError(err, "campaign"))
+		log.Println("Failed to update campaign", err)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
 }
 
-func ErrInternalServer(err error) render.Renderer {
-	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 500,
-		StatusText:     "Server Error",
-		ErrorText:      err.Error(),
+func deleteCampaignAPI(w http.ResponseWriter, r *http.Request) {
+	// Get the uid from the request context
+	uid := utils.GetUidFromContext(r.Context())
+	campaignId := chi.URLParam(r, "campaignId")
+
+	log.Println("User ID: ", uid)
+	log.Println("Campaign ID: ", campaignId)
+
+	err := deleteCampaign(uid, campaignId)
+	if err != nil {
+		render.Render(w, r, utils.GetHttpErrorFromError(err, "campaign"))
+		log.Println("Failed to delete campaign", err)
+		return
 	}
+
+	render.Status(r, http.StatusOK)
 }
